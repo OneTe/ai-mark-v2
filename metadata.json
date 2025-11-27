@@ -1,0 +1,5 @@
+{
+  "name": "AI Tagging Platform",
+  "description": "A comprehensive platform for managing image datasets, executing AI tagging prompts with Gemini, and calibrating labels.",
+  "requestFramePermissions": []
+}
