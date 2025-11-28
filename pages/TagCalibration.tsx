@@ -7,7 +7,45 @@ interface Image {
   status: 'Correct' | 'Incorrect' | null;
 }
 
+interface ExecutionRecord {
+  id: string;
+  promptVersion: string;
+  executionTime: string;
+  model: string;
+  totalImages: number;
+  status: 'Completed' | 'Failed';
+}
+
+// Mock execution records
+const mockExecutionRecords: ExecutionRecord[] = [
+  {
+    id: '#10234',
+    promptVersion: 'v2.1',
+    executionTime: '2024-05-19 14:30',
+    model: 'Gemini 2.5 Flash',
+    totalImages: 1500,
+    status: 'Completed'
+  },
+  {
+    id: '#10233',
+    promptVersion: 'v2.0',
+    executionTime: '2024-05-18 10:15',
+    model: 'Gemini 2.5 Flash',
+    totalImages: 1500,
+    status: 'Completed'
+  },
+  {
+    id: '#10230',
+    promptVersion: 'v1.3',
+    executionTime: '2024-05-15 16:20',
+    model: 'Gemini Pro',
+    totalImages: 1200,
+    status: 'Completed'
+  },
+];
+
 const TagCalibration: React.FC = () => {
+  const [selectedExecutionId, setSelectedExecutionId] = useState(mockExecutionRecords[0].id);
   const [images, setImages] = useState<Image[]>([
     { id: 'a3b8c1d9', url: 'https://picsum.photos/400/400?random=10', tags: ['狗', '宠物', '户外'], status: null },
     { id: 'e4f5g2h1', url: 'https://picsum.photos/400/400?random=11', tags: ['狗', '宠物'], status: 'Correct' },
@@ -47,8 +85,52 @@ const TagCalibration: React.FC = () => {
   const correctCount = images.filter(img => img.status === 'Correct').length;
   const currentAccuracy = evaluatedCount > 0 ? ((correctCount / evaluatedCount) * 100).toFixed(1) : 'N/A';
 
+  const selectedExecution = mockExecutionRecords.find(r => r.id === selectedExecutionId) || mockExecutionRecords[0];
+
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)] animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* Execution Record Selector */}
+      <div className="bg-white dark:bg-panel-dark p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-xl">history</span>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                执行记录:
+              </label>
+            </div>
+            <select
+              value={selectedExecutionId}
+              onChange={(e) => setSelectedExecutionId(e.target.value)}
+              className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary cursor-pointer min-w-[280px]"
+            >
+              {mockExecutionRecords.map(record => (
+                <option key={record.id} value={record.id}>
+                  {record.id} - {record.promptVersion} - {record.executionTime}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 rounded-md">
+              <span className="material-symbols-outlined text-primary text-base">code</span>
+              <span className="font-medium text-primary">Prompt {selectedExecution.promptVersion}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+              <span className="material-symbols-outlined text-base">memory</span>
+              <span>{selectedExecution.model}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+              <span className="material-symbols-outlined text-base">photo_library</span>
+              <span>{selectedExecution.totalImages} 张图片</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Calibration Area */}
+      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-320px)]">
       {/* Left Sidebar List */}
       <aside className="w-full lg:w-80 flex flex-col gap-4 flex-shrink-0">
         <div className="bg-white dark:bg-panel-dark border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex flex-col h-full">
@@ -210,6 +292,7 @@ const TagCalibration: React.FC = () => {
           </div>
         </div>
       </section>
+      </div>
     </div>
   );
 };

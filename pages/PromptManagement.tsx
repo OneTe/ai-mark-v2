@@ -56,6 +56,9 @@ const PromptManagement: React.FC = () => {
   const [selectedPrompt, setSelectedPrompt] = useState<PromptVersion | null>(null);
   const [editContent, setEditContent] = useState('');
   const [displayCount, setDisplayCount] = useState(10);
+  const [showComparison, setShowComparison] = useState(false);
+  const [selectedHistoryVersion, setSelectedHistoryVersion] = useState<string>('');
+  const [showSaveDropdown, setShowSaveDropdown] = useState(false);
 
   // Infinite scroll handler
   useEffect(() => {
@@ -76,16 +79,39 @@ const PromptManagement: React.FC = () => {
     return () => scrollableDiv?.removeEventListener('scroll', handleScroll);
   }, [prompts.length]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showSaveDropdown) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.save-dropdown-container')) {
+          setShowSaveDropdown(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSaveDropdown]);
+
   const handleCardClick = (prompt: PromptVersion) => {
     setSelectedPrompt(prompt);
     setEditContent(prompt.content);
     setIsEditing(true);
+    setShowComparison(false);
+    // Set default comparison to previous version if available
+    const currentIndex = prompts.findIndex(p => p.id === prompt.id);
+    if (currentIndex < prompts.length - 1) {
+      setSelectedHistoryVersion(prompts[currentIndex + 1].id);
+    } else if (prompts.length > 1) {
+      setSelectedHistoryVersion(prompts[0].id);
+    }
   };
 
   const handleSave = () => {
     if (!selectedPrompt) return;
 
-    // Create a new version based on edit
+    // Update existing version
     const updatedPrompts = prompts.map(p => {
       if (p.id === selectedPrompt.id) {
         return {
@@ -107,6 +133,51 @@ const PromptManagement: React.FC = () => {
     setPrompts(updatedPrompts);
     setIsEditing(false);
     setSelectedPrompt(null);
+    setShowSaveDropdown(false);
+  };
+
+  const handleSaveAsNewVersion = () => {
+    if (!selectedPrompt) return;
+
+    // Parse version number and increment
+    const versionMatch = selectedPrompt.version.match(/v(\d+)\.(\d+)/);
+    let newVersion = 'v1.0';
+
+    if (versionMatch) {
+      const major = parseInt(versionMatch[1]);
+      const minor = parseInt(versionMatch[2]);
+      newVersion = `v${major}.${minor + 1}`;
+    }
+
+    // Create new version
+    const newPrompt: PromptVersion = {
+      id: String(prompts.length + 1),
+      version: newVersion,
+      content: editContent,
+      createdAt: new Date().toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).replace(/\//g, '-'),
+      updatedAt: new Date().toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).replace(/\//g, '-'),
+      isActive: false,
+      author: 'Admin'
+    };
+
+    setPrompts([newPrompt, ...prompts]);
+    setIsEditing(false);
+    setSelectedPrompt(null);
+    setShowSaveDropdown(false);
   };
 
   const handleCancel = () => {
@@ -215,6 +286,8 @@ const PromptManagement: React.FC = () => {
   }
 
   // Edit View
+  const selectedHistoryPrompt = prompts.find(p => p.id === selectedHistoryVersion);
+
   return (
     <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-background-dark">
       <div className="h-full flex flex-col">
@@ -241,40 +314,144 @@ const PromptManagement: React.FC = () => {
             </div>
             <div className="flex items-center gap-3">
               <button
+                onClick={() => setShowComparison(!showComparison)}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">
+                  {showComparison ? 'visibility_off' : 'compare'}
+                </span>
+                {showComparison ? '隐藏对比' : '历史对比'}
+              </button>
+              <button
                 onClick={handleCancel}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 取消
               </button>
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-sm">
-                  save
-                </span>
-                保存
-              </button>
+
+              {/* Split button for Save options */}
+              <div className="relative save-dropdown-container">
+                <div className="flex">
+                  <button
+                    onClick={handleSave}
+                    className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-l-lg transition-colors flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      save
+                    </span>
+                    保存
+                  </button>
+                  <button
+                    onClick={() => setShowSaveDropdown(!showSaveDropdown)}
+                    className="px-2 py-2 bg-primary hover:bg-primary-dark text-white border-l border-white/20 rounded-r-lg transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      {showSaveDropdown ? 'expand_less' : 'expand_more'}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Dropdown menu */}
+                {showSaveDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                    <button
+                      onClick={handleSave}
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 rounded-t-lg transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        save
+                      </span>
+                      保存当前版本
+                    </button>
+                    <button
+                      onClick={handleSaveAsNewVersion}
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 rounded-b-lg transition-colors border-t border-gray-100 dark:border-gray-700"
+                    >
+                      <span className="material-symbols-outlined text-sm">
+                        add_circle
+                      </span>
+                      保存为新版本
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Editor Content */}
         <div className="flex-1 overflow-y-auto px-8 py-6">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             <div className="bg-white dark:bg-panel-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Prompt 内容
-              </label>
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="w-full h-96 px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                placeholder="输入 Prompt 内容..."
-              />
+              {/* Comparison Mode */}
+              {showComparison ? (
+                <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Left: Historical Version */}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">历史版本参考</label>
+                        <select
+                          value={selectedHistoryVersion}
+                          onChange={(e) => setSelectedHistoryVersion(e.target.value)}
+                          className="text-xs px-2 py-1 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none"
+                        >
+                          {prompts.filter(p => p.id !== selectedPrompt?.id).map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.version} {p.isActive ? '(当前使用)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="relative">
+                        <textarea
+                          className="w-full h-[500px] p-4 text-sm leading-relaxed border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-400 resize-none font-mono"
+                          value={selectedHistoryPrompt?.content || ''}
+                          readOnly
+                        />
+                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400">
+                          只读
+                        </div>
+                      </div>
+                      {selectedHistoryPrompt && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                          <div>创建时间: {selectedHistoryPrompt.createdAt}</div>
+                          <div>作者: {selectedHistoryPrompt.author}</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: Current Editing */}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        当前编辑 <span className="text-primary">({selectedPrompt?.version})</span>
+                      </label>
+                      <textarea
+                        className="w-full h-[500px] p-4 text-sm leading-relaxed border-2 border-primary/50 dark:border-primary/50 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary focus:outline-none resize-none font-mono"
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        placeholder="请输入 Prompt 内容..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Normal Edit Mode */
+                <div className="flex flex-col gap-3">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Prompt 内容
+                  </label>
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="w-full h-96 px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                    placeholder="输入 Prompt 内容..."
+                  />
+                </div>
+              )}
 
               {/* Metadata */}
-              <div className="mt-6 grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="mt-6 grid grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                     版本号
@@ -297,22 +474,6 @@ const PromptManagement: React.FC = () => {
                   </label>
                   <p className="text-sm text-gray-900 dark:text-white">
                     {selectedPrompt?.createdAt}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    状态
-                  </label>
-                  <p className="text-sm">
-                    {selectedPrompt?.isActive ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                        当前使用
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                        历史版本
-                      </span>
-                    )}
                   </p>
                 </div>
               </div>

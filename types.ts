@@ -45,7 +45,6 @@ export interface PromptVersion {
 export enum Tab {
   Overview = 'overview',
   Prompt = 'prompt',
-  Images = 'images',
   Calibration = 'calibration',
   History = 'history'
 }

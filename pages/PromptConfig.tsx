@@ -46,15 +46,15 @@ const mockPromptVersions: PromptVersion[] = [
 ];
 
 const PromptConfig: React.FC<PromptConfigProps> = ({ onViewExecution }) => {
-  const currentVersion = mockPromptVersions.find(p => p.isActive) || mockPromptVersions[mockPromptVersions.length - 1];
-
-  const [prompt, setPrompt] = useState(currentVersion.content);
+  const [selectedVersionId, setSelectedVersionId] = useState<string>(
+    mockPromptVersions.find(p => p.isActive)?.id || mockPromptVersions[mockPromptVersions.length - 1].id
+  );
   const [model, setModel] = useState('gemini-2.5-flash');
   const [isExecuting, setIsExecuting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [testResult, setTestResult] = useState<string | null>(null);
-  const [showComparison, setShowComparison] = useState(false);
-  const [selectedHistoryVersion, setSelectedHistoryVersion] = useState<string>(mockPromptVersions[0].id);
+
+  const selectedVersion = mockPromptVersions.find(p => p.id === selectedVersionId) || mockPromptVersions[0];
 
   const handleExecute = async () => {
     setIsExecuting(true);
@@ -68,7 +68,7 @@ const PromptConfig: React.FC<PromptConfigProps> = ({ onViewExecution }) => {
         }, 200);
 
         // Actual call to Gemini Service (Mocked or Real) for a "Sample" test
-        const result = await testPromptWithMock(prompt, model);
+        const result = await testPromptWithMock(selectedVersion.content, model);
 
         clearInterval(interval);
         setProgress(100);
@@ -83,128 +83,93 @@ const PromptConfig: React.FC<PromptConfigProps> = ({ onViewExecution }) => {
     }
   };
 
-  const handleSave = () => {
-    // TODO: Save current prompt to existing version
-    alert('保存成功！');
-  };
-
-  const handleSaveAsNewVersion = () => {
-    // Get the latest version number and increment
-    const versionNumbers = mockPromptVersions.map(p => {
-      const match = p.version.match(/v(\d+)\.(\d+)/);
-      return match ? parseInt(match[1]) : 0;
-    });
-    const maxMajorVersion = Math.max(...versionNumbers);
-    const newVersion = `v${maxMajorVersion + 1}.0`;
-
-    // TODO: Save as new version
-    alert(`已保存为新版本：${newVersion}`);
-  };
-
-  const selectedHistoryPrompt = mockPromptVersions.find(p => p.id === selectedHistoryVersion);
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      {/* Editor Column */}
+      {/* Prompt Version Selector Column */}
       <div className="flex flex-col gap-6 bg-white dark:bg-panel-dark p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-fit">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Prompt 编辑区</h2>
-          <button
-            onClick={() => setShowComparison(!showComparison)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          >
-            <span className="material-symbols-outlined text-sm">
-              {showComparison ? 'visibility_off' : 'compare'}
-            </span>
-            {showComparison ? '隐藏对比' : '历史对比'}
-          </button>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Prompt 版本选择</h2>
+          <span className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium rounded-md">
+            只读模式
+          </span>
         </div>
 
-        {/* Comparison Mode */}
-        {showComparison ? (
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Left: Historical Version */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">历史版本参考</label>
-                  <select
-                    value={selectedHistoryVersion}
-                    onChange={(e) => setSelectedHistoryVersion(e.target.value)}
-                    className="text-xs px-2 py-1 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none"
-                  >
-                    {mockPromptVersions.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.version} {p.isActive ? '(当前)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="relative">
-                  <textarea
-                    className="w-full h-[400px] p-4 text-sm leading-relaxed border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-400 resize-none"
-                    value={selectedHistoryPrompt?.content || ''}
-                    readOnly
-                  />
-                  <div className="absolute top-2 right-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400">
-                    只读
-                  </div>
-                </div>
-                {selectedHistoryPrompt && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                    <div>创建时间: {selectedHistoryPrompt.createdAt}</div>
-                    <div>作者: {selectedHistoryPrompt.author}</div>
-                  </div>
-                )}
-              </div>
+        {/* Version Selector */}
+        <div className="flex flex-col gap-3">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            选择 Prompt 版本
+          </label>
+          <select
+            value={selectedVersionId}
+            onChange={(e) => setSelectedVersionId(e.target.value)}
+            className="px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none cursor-pointer"
+          >
+            {mockPromptVersions.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.version} {p.isActive ? '(当前使用)' : ''} - 更新于 {p.updatedAt}
+              </option>
+            ))}
+          </select>
+        </div>
 
-              {/* Right: Current Editing */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  当前编辑 <span className="text-primary">({currentVersion.version})</span>
-                </label>
-                <textarea
-                  className="w-full h-[400px] p-4 text-sm leading-relaxed border-2 border-primary/50 dark:border-primary/50 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary focus:outline-none resize-none"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="请输入用于从图片中提取标签的 Prompt..."
-                />
-              </div>
+        {/* Version Preview */}
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Prompt 内容预览
+          </label>
+          <div className="relative">
+            <textarea
+              className="w-full min-h-[400px] p-4 text-sm leading-relaxed border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-400 resize-none font-mono"
+              value={selectedVersion.content}
+              readOnly
+            />
+            <div className="absolute top-2 right-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400">
+              只读
             </div>
           </div>
-        ) : (
-          /* Normal Edit Mode */
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              标签提取 Prompt <span className="text-gray-500 text-xs">({currentVersion.version})</span>
-            </label>
-            <textarea
-              className="w-full min-h-[300px] p-4 text-sm leading-relaxed border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary focus:outline-none resize-y"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="请输入用于从图片中提取标签的 Prompt..."
-            />
-          </div>
-        )}
+        </div>
 
-        <div className="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
-          <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            恢复默认
-          </button>
-          <div className="flex gap-3">
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              保存
-            </button>
-            <button
-              onClick={handleSaveAsNewVersion}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary-dark transition-colors shadow-sm"
-            >
-              <span className="material-symbols-outlined text-sm">add_circle</span>
-              保存为新版本
-            </button>
+        {/* Version Metadata */}
+        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              版本号
+            </label>
+            <p className="text-sm text-gray-900 dark:text-white font-medium">
+              {selectedVersion.version}
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              作者
+            </label>
+            <p className="text-sm text-gray-900 dark:text-white font-medium">
+              {selectedVersion.author}
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              创建时间
+            </label>
+            <p className="text-sm text-gray-900 dark:text-white">
+              {selectedVersion.createdAt}
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              状态
+            </label>
+            <p className="text-sm">
+              {selectedVersion.isActive ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                  当前使用
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                  历史版本
+                </span>
+              )}
+            </p>
           </div>
         </div>
       </div>

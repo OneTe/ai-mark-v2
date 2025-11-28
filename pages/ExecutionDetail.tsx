@@ -68,6 +68,7 @@ const mockExecutionDetails = {
 const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, onBack }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [filterStatus, setFilterStatus] = useState<'all' | 'success' | 'failed'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 12;
 
   const executionData = mockExecutionDetails[executionId as keyof typeof mockExecutionDetails];
@@ -84,12 +85,19 @@ const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, onBack }
     );
   }
 
-  // Filter images
+  // Filter images by status and search query
   const filteredImages = executionData.imageResults.filter(img => {
-    if (filterStatus === 'all') return true;
-    if (filterStatus === 'success') return img.status === 'Success';
-    if (filterStatus === 'failed') return img.status === 'Failed';
-    return true;
+    // Filter by status
+    const statusMatch =
+      filterStatus === 'all' ||
+      (filterStatus === 'success' && img.status === 'Success') ||
+      (filterStatus === 'failed' && img.status === 'Failed');
+
+    // Filter by search query (image ID)
+    const searchMatch = searchQuery.trim() === '' ||
+      img.id.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return statusMatch && searchMatch;
   });
 
   const totalPages = Math.ceil(filteredImages.length / itemsPerPage);
@@ -224,37 +232,95 @@ const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, onBack }
       {/* Image Results */}
       <div className="bg-white dark:bg-panel-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">图片处理结果</h3>
-            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-              {(['all', 'success', 'failed'] as const).map((status) => (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">图片处理结果</h3>
+              <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+                {(['all', 'success', 'failed'] as const).map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => {
+                      setFilterStatus(status);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap transition-all ${
+                      filterStatus === status
+                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {status === 'all' ? '全部' : status === 'success' ? '成功' : '失败'}
+                    <span className="ml-1.5 text-xs opacity-75">
+                      ({status === 'all' ? executionData.imageResults.length :
+                        status === 'success' ? executionData.successCount : executionData.failedCount})
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Search Box */}
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
+                search
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="搜索图片 ID..."
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+              />
+              {searchQuery && (
                 <button
-                  key={status}
                   onClick={() => {
-                    setFilterStatus(status);
+                    setSearchQuery('');
                     setCurrentPage(1);
                   }}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md whitespace-nowrap transition-all ${
-                    filterStatus === status
-                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
-                  {status === 'all' ? '全部' : status === 'success' ? '成功' : '失败'}
-                  <span className="ml-1.5 text-xs opacity-75">
-                    ({status === 'all' ? executionData.imageResults.length :
-                      status === 'success' ? executionData.successCount : executionData.failedCount})
-                  </span>
+                  <span className="material-symbols-outlined text-lg">close</span>
                 </button>
-              ))}
+              )}
             </div>
+
+            {/* Search Results Info */}
+            {searchQuery && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                找到 <span className="font-medium text-gray-900 dark:text-white">{filteredImages.length}</span> 个匹配的结果
+              </p>
+            )}
           </div>
         </div>
 
         {/* Image Grid */}
         <div className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {currentImages.map((img) => (
+          {filteredImages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">
+                image_search
+              </span>
+              <p className="text-gray-500 dark:text-gray-400 text-center">
+                {searchQuery ? `未找到包含 "${searchQuery}" 的图片` : '没有符合条件的图片'}
+              </p>
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setCurrentPage(1);
+                  }}
+                  className="text-primary hover:text-primary-dark font-medium text-sm"
+                >
+                  清除搜索
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {currentImages.map((img) => (
               <div
                 key={img.id}
                 className={`bg-white dark:bg-panel-dark rounded-lg border overflow-hidden hover:shadow-md transition-all ${
@@ -292,11 +358,12 @@ const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, onBack }
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {filteredImages.length > 0 && totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-6">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}

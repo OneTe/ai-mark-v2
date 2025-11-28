@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import DatasetList from './pages/DatasetList';
 import DatasetOverview from './pages/DatasetOverview';
-import ImageList from './pages/ImageList';
 import TagCalibration from './pages/TagCalibration';
 import PromptConfig from './pages/PromptConfig';
 import PromptManagement from './pages/PromptManagement';
@@ -55,7 +54,6 @@ const App: React.FC = () => {
                 {[
                     { id: Tab.Overview, label: '概览' },
                     { id: Tab.Prompt, label: 'Prompt 配置与执行' },
-                    { id: Tab.Images, label: '图片列表' },
                     { id: Tab.Calibration, label: '标签校准' },
                     { id: Tab.History, label: '运行历史' },
                 ].map((tab) => (
@@ -86,7 +84,6 @@ const App: React.FC = () => {
                   <>
                     {activeTab === Tab.Overview && <DatasetOverview />}
                     {activeTab === Tab.Prompt && <PromptConfig onViewExecution={(id) => setSelectedExecutionId(id)} />}
-                    {activeTab === Tab.Images && <ImageList />}
                     {activeTab === Tab.Calibration && <TagCalibration />}
                     {activeTab === Tab.History && (
                       <RunHistory onViewExecution={(id) => setSelectedExecutionId(id)} />
