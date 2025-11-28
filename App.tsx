@@ -27,6 +27,7 @@ const App: React.FC = () => {
   const handleSelectDataset = (id: string) => {
     setSelectedDatasetId(id);
     setActiveTab(Tab.Overview);
+    setSelectedExecutionId(null);
   };
 
   const renderContent = () => {
@@ -60,10 +61,13 @@ const App: React.FC = () => {
                 ].map((tab) => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => {
+                            setActiveTab(tab.id);
+                            setSelectedExecutionId(null);
+                        }}
                         className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap
-                            ${activeTab === tab.id 
-                                ? 'border-primary text-primary' 
+                            ${activeTab === tab.id
+                                ? 'border-primary text-primary'
                                 : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                     >
                         {tab.label}
@@ -73,18 +77,21 @@ const App: React.FC = () => {
 
             {/* Tab Content */}
             <div className="min-h-[500px]">
-                {activeTab === Tab.Overview && <DatasetOverview />}
-                {activeTab === Tab.Prompt && <PromptConfig onViewExecution={(id) => setSelectedExecutionId(id)} />}
-                {activeTab === Tab.Images && <ImageList />}
-                {activeTab === Tab.Calibration && <TagCalibration />}
-                {activeTab === Tab.History && !selectedExecutionId && (
-                  <RunHistory onViewExecution={(id) => setSelectedExecutionId(id)} />
-                )}
-                {activeTab === Tab.History && selectedExecutionId && (
+                {selectedExecutionId ? (
                   <ExecutionDetail
                     executionId={selectedExecutionId}
                     onBack={() => setSelectedExecutionId(null)}
                   />
+                ) : (
+                  <>
+                    {activeTab === Tab.Overview && <DatasetOverview />}
+                    {activeTab === Tab.Prompt && <PromptConfig onViewExecution={(id) => setSelectedExecutionId(id)} />}
+                    {activeTab === Tab.Images && <ImageList />}
+                    {activeTab === Tab.Calibration && <TagCalibration />}
+                    {activeTab === Tab.History && (
+                      <RunHistory onViewExecution={(id) => setSelectedExecutionId(id)} />
+                    )}
+                  </>
                 )}
             </div>
         </div>
