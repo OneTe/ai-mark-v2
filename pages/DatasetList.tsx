@@ -70,9 +70,6 @@ const DatasetList: React.FC<DatasetListProps> = ({ onSelectDataset }) => {
                     <button onClick={() => onSelectDataset(dataset.id)} className="p-1.5 text-gray-500 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 transition-colors">
                       <span className="material-symbols-outlined text-xl">visibility</span>
                     </button>
-                    <button className="p-1.5 text-gray-500 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 transition-colors">
-                      <span className="material-symbols-outlined text-xl">play_arrow</span>
-                    </button>
                     <button className="p-1.5 text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                       <span className="material-symbols-outlined text-xl">delete</span>
                     </button>

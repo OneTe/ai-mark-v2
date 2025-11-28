@@ -1,13 +1,51 @@
-import React from 'react';
+import React, { useState } from 'react';
+
+interface Image {
+  id: string;
+  url: string;
+  tags: string[];
+  status: 'Correct' | 'Incorrect' | null;
+}
 
 const TagCalibration: React.FC = () => {
-  const images = [
+  const [images, setImages] = useState<Image[]>([
     { id: 'a3b8c1d9', url: 'https://picsum.photos/400/400?random=10', tags: ['狗', '宠物', '户外'], status: null },
     { id: 'e4f5g2h1', url: 'https://picsum.photos/400/400?random=11', tags: ['狗', '宠物'], status: 'Correct' },
     { id: 'i6j7k8l9', url: 'https://picsum.photos/400/400?random=12', tags: ['狗', '宠物', '肖像'], status: 'Incorrect' },
     { id: 'm0n1o2p3', url: 'https://picsum.photos/400/400?random=13', tags: ['狗', '宠物'], status: null },
     { id: 'q4r5s6t7', url: 'https://picsum.photos/400/400?random=14', tags: ['狗', '宠物', '可爱'], status: null },
-  ];
+  ]);
+
+  const handleMarkCorrect = (id: string) => {
+    setImages(images.map(img =>
+      img.id === id ? { ...img, status: 'Correct' as const } : img
+    ));
+  };
+
+  const handleMarkIncorrect = (id: string) => {
+    setImages(images.map(img =>
+      img.id === id ? { ...img, status: 'Incorrect' as const } : img
+    ));
+  };
+
+  const handleUndo = (id: string) => {
+    setImages(images.map(img =>
+      img.id === id ? { ...img, status: null } : img
+    ));
+  };
+
+  const handleMarkAllCorrect = () => {
+    setImages(images.map(img => ({ ...img, status: 'Correct' as const })));
+  };
+
+  const handleMarkTagAsCompleted = () => {
+    // TODO: Mark this tag as completed/passed
+    alert('标签"狗"已标记为通过！');
+  };
+
+  const evaluatedCount = images.filter(img => img.status !== null).length;
+  const correctCount = images.filter(img => img.status === 'Correct').length;
+  const currentAccuracy = evaluatedCount > 0 ? ((correctCount / evaluatedCount) * 100).toFixed(1) : 'N/A';
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)] animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -66,17 +104,39 @@ const TagCalibration: React.FC = () => {
 
       {/* Main Content */}
       <section className="flex-1 flex flex-col gap-6 overflow-hidden">
-        <div className="bg-white dark:bg-panel-dark p-4 rounded-lg border border-gray-200 dark:border-gray-700 flex justify-between items-center shadow-sm">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              校准标签: <span className="text-primary">狗</span>
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">共 2300 张图片, 已评估 850 张, 当前准确率 91%</p>
+        <div className="bg-white dark:bg-panel-dark p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                校准标签: <span className="text-primary">狗</span>
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                共 2300 张图片 · 已评估 {evaluatedCount} 张 · 当前准确率 {currentAccuracy}%
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* 全部正确按钮 */}
+              <button
+                onClick={handleMarkAllCorrect}
+                className="flex items-center gap-2 px-4 py-2 bg-success/10 hover:bg-success/20 text-success border border-success/30 rounded-lg text-sm font-medium transition-colors"
+              >
+                <span className="material-symbols-outlined text-lg">done_all</span>
+                全部正确
+              </button>
+
+              {/* 标记标签为已通过按钮 - 重新设计 */}
+              <button
+                onClick={handleMarkTagAsCompleted}
+                disabled={evaluatedCount === 0}
+                className="flex items-center gap-2 px-5 py-2 bg-primary hover:bg-primary-dark disabled:bg-gray-200 dark:disabled:bg-gray-700 text-white disabled:text-gray-400 dark:disabled:text-gray-500 rounded-lg text-sm font-bold transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
+                title={evaluatedCount === 0 ? '请先评估至少一张图片' : '标记该标签校准已完成'}
+              >
+                <span className="material-symbols-outlined text-lg">verified</span>
+                <span>通过校准</span>
+              </button>
+            </div>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg text-sm font-medium cursor-not-allowed opacity-70">
-            <span className="material-symbols-outlined text-lg">verified</span>
-            标记该标签为已通过
-          </button>
         </div>
 
         <div className="overflow-y-auto flex-1 pr-2">
@@ -114,22 +174,31 @@ const TagCalibration: React.FC = () => {
                       </span>
                     ))}
                   </div>
-                  
+
                   {img.status ? (
-                    <button className={`w-full flex items-center justify-center gap-1.5 py-1.5 text-sm font-medium rounded-md mt-auto transition-colors
-                      ${img.status === 'Correct' 
-                        ? 'bg-success/10 text-success hover:bg-success/20' 
-                        : 'bg-danger/10 text-danger hover:bg-danger/20'}`}>
+                    <button
+                      onClick={() => handleUndo(img.id)}
+                      className={`w-full flex items-center justify-center gap-1.5 py-1.5 text-sm font-medium rounded-md mt-auto transition-colors
+                      ${img.status === 'Correct'
+                        ? 'bg-success/10 text-success hover:bg-success/20'
+                        : 'bg-danger/10 text-danger hover:bg-danger/20'}`}
+                    >
                       <span className="material-symbols-outlined text-base">undo</span>
                       撤销 ({img.status === 'Correct' ? '正确' : '错误'})
                     </button>
                   ) : (
                     <div className="grid grid-cols-2 gap-2 mt-auto">
-                      <button className="flex items-center justify-center gap-1.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm transition-colors group">
+                      <button
+                        onClick={() => handleMarkCorrect(img.id)}
+                        className="flex items-center justify-center gap-1.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm transition-colors group"
+                      >
                         <span className="material-symbols-outlined text-base text-success group-hover:scale-110 transition-transform">thumb_up</span>
                         正确
                       </button>
-                      <button className="flex items-center justify-center gap-1.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm transition-colors group">
+                      <button
+                        onClick={() => handleMarkIncorrect(img.id)}
+                        className="flex items-center justify-center gap-1.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm transition-colors group"
+                      >
                         <span className="material-symbols-outlined text-base text-danger group-hover:scale-110 transition-transform">thumb_down</span>
                         错误
                       </button>

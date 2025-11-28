@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const mockImages = [
   { id: 'IMG_8821.jpg', url: 'https://picsum.photos/400/300?random=1', status: 'Success', tags: ['Mountain', 'Nature', 'Landscape'] },
@@ -11,7 +11,10 @@ const mockImages = [
   { id: 'IMG_8828.jpg', url: 'https://picsum.photos/400/300?random=8', status: 'Failed', error: 'Image corrupted.' },
 ];
 
+type ViewMode = 'grid' | 'list';
+
 const ImageList: React.FC = () => {
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
       {/* Filter Bar */}
@@ -43,71 +46,166 @@ const ImageList: React.FC = () => {
             ))}
           </div>
           <div className="flex items-center gap-1 border-l border-gray-200 dark:border-gray-700 pl-4">
-            <button className="p-2 text-primary bg-primary/10 rounded-lg">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'grid'
+                  ? 'text-primary bg-primary/10'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
               <span className="material-symbols-outlined text-xl">grid_view</span>
             </button>
-            <button className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'list'
+                  ? 'text-primary bg-primary/10'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
               <span className="material-symbols-outlined text-xl">view_list</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-        {mockImages.map((img) => (
-          <div key={img.id} className="group bg-white dark:bg-panel-dark rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all duration-200 hover:-translate-y-1">
-            <div className="relative aspect-video bg-gray-100 dark:bg-gray-800">
-              <img src={img.url} alt={img.id} className="w-full h-full object-cover" />
-              <div className="absolute top-2 right-2">
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium shadow-sm backdrop-blur-md
-                  ${img.status === 'Success' ? 'bg-white/90 text-success' : 
-                    img.status === 'Failed' ? 'bg-white/90 text-danger' : 
-                    'bg-white/90 text-gray-600'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full 
-                    ${img.status === 'Success' ? 'bg-success' : 
-                      img.status === 'Failed' ? 'bg-danger' : 
-                      'bg-gray-400'}`}></span>
-                  {img.status === 'Success' ? '成功' : img.status === 'Failed' ? '失败' : '未处理'}
-                </span>
+      {/* Grid View */}
+      {viewMode === 'grid' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          {mockImages.map((img) => (
+            <div key={img.id} className="group bg-white dark:bg-panel-dark rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all duration-200 hover:-translate-y-1">
+              <div className="relative aspect-video bg-gray-100 dark:bg-gray-800">
+                <img src={img.url} alt={img.id} className="w-full h-full object-cover" />
+                <div className="absolute top-2 right-2">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium shadow-sm backdrop-blur-md
+                    ${img.status === 'Success' ? 'bg-white/90 text-success' :
+                      img.status === 'Failed' ? 'bg-white/90 text-danger' :
+                      'bg-white/90 text-gray-600'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full
+                      ${img.status === 'Success' ? 'bg-success' :
+                        img.status === 'Failed' ? 'bg-danger' :
+                        'bg-gray-400'}`}></span>
+                    {img.status === 'Success' ? '成功' : img.status === 'Failed' ? '失败' : '未处理'}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="p-4">
-              <div className="mb-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400">图片 ID</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate" title={img.id}>{img.id}</p>
-              </div>
-              
-              {img.status === 'Success' && img.tags && (
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">预测标签</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {img.tags.map(tag => (
-                      <span key={tag} className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium">
-                        {tag}
-                      </span>
-                    ))}
+              <div className="p-4">
+                <div className="mb-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">图片 ID</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate" title={img.id}>{img.id}</p>
+                </div>
+
+                {img.status === 'Success' && img.tags && (
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">预测标签</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {img.tags.map(tag => (
+                        <span key={tag} className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {img.status === 'Failed' && (
-                <div>
-                  <p className="text-xs text-danger mb-1">错误信息</p>
-                  <p className="text-sm text-danger line-clamp-2">{img.error}</p>
-                </div>
-              )}
+                {img.status === 'Failed' && (
+                  <div>
+                    <p className="text-xs text-danger mb-1">错误信息</p>
+                    <p className="text-sm text-danger line-clamp-2">{img.error}</p>
+                  </div>
+                )}
 
-              {img.status === 'Unprocessed' && (
-                <div>
-                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">预测标签</p>
-                   <p className="text-sm text-gray-400 italic">待处理</p>
-                </div>
-              )}
+                {img.status === 'Unprocessed' && (
+                  <div>
+                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">预测标签</p>
+                     <p className="text-sm text-gray-400 italic">待处理</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {/* List View */}
+      {viewMode === 'list' && (
+        <div className="bg-white dark:bg-panel-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+              <tr>
+                <th className="px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">预览</th>
+                <th className="px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">图片 ID</th>
+                <th className="px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">状态</th>
+                <th className="px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">预测标签</th>
+                <th className="px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {mockImages.map((img) => (
+                <tr key={img.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  {/* Preview */}
+                  <td className="px-6 py-4">
+                    <div className="w-20 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                      <img src={img.url} alt={img.id} className="w-full h-full object-cover" />
+                    </div>
+                  </td>
+
+                  {/* Image ID */}
+                  <td className="px-6 py-4">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{img.id}</p>
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                      ${img.status === 'Success' ? 'bg-success/10 text-success' :
+                        img.status === 'Failed' ? 'bg-danger/10 text-danger' :
+                        'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full
+                        ${img.status === 'Success' ? 'bg-success' :
+                          img.status === 'Failed' ? 'bg-danger' :
+                          'bg-gray-400'}`}></span>
+                      {img.status === 'Success' ? '成功' : img.status === 'Failed' ? '失败' : '未处理'}
+                    </span>
+                  </td>
+
+                  {/* Tags / Error */}
+                  <td className="px-6 py-4">
+                    {img.status === 'Success' && img.tags && (
+                      <div className="flex flex-wrap gap-1.5 max-w-md">
+                        {img.tags.map(tag => (
+                          <span key={tag} className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {img.status === 'Failed' && (
+                      <p className="text-sm text-danger line-clamp-2 max-w-md">{img.error}</p>
+                    )}
+                    {img.status === 'Unprocessed' && (
+                      <p className="text-sm text-gray-400 dark:text-gray-500 italic">待处理</p>
+                    )}
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button className="p-1.5 text-gray-500 dark:text-gray-400 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="查看详情">
+                        <span className="material-symbols-outlined text-lg">visibility</span>
+                      </button>
+                      <button className="p-1.5 text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="删除">
+                        <span className="material-symbols-outlined text-lg">delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Pagination */}
       <div className="flex items-center justify-between bg-white dark:bg-panel-dark px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6 rounded-lg">

@@ -6,6 +6,8 @@ import ImageList from './pages/ImageList';
 import TagCalibration from './pages/TagCalibration';
 import PromptConfig from './pages/PromptConfig';
 import PromptManagement from './pages/PromptManagement';
+import RunHistory from './pages/RunHistory';
+import ExecutionDetail from './pages/ExecutionDetail';
 import { Tab } from './types';
 
 const App: React.FC = () => {
@@ -13,6 +15,7 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState('datasets');
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>(Tab.Overview);
+  const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
 
   const handleNavigate = (pageId: string) => {
     setCurrentPage(pageId);
@@ -71,14 +74,17 @@ const App: React.FC = () => {
             {/* Tab Content */}
             <div className="min-h-[500px]">
                 {activeTab === Tab.Overview && <DatasetOverview />}
-                {activeTab === Tab.Prompt && <PromptConfig />}
+                {activeTab === Tab.Prompt && <PromptConfig onViewExecution={(id) => setSelectedExecutionId(id)} />}
                 {activeTab === Tab.Images && <ImageList />}
                 {activeTab === Tab.Calibration && <TagCalibration />}
-                {activeTab === Tab.History && (
-                    <div className="p-12 text-center text-gray-500">
-                        <span className="material-symbols-outlined text-4xl mb-2">history</span>
-                        <p>History view not implemented in this demo.</p>
-                    </div>
+                {activeTab === Tab.History && !selectedExecutionId && (
+                  <RunHistory onViewExecution={(id) => setSelectedExecutionId(id)} />
+                )}
+                {activeTab === Tab.History && selectedExecutionId && (
+                  <ExecutionDetail
+                    executionId={selectedExecutionId}
+                    onBack={() => setSelectedExecutionId(null)}
+                  />
                 )}
             </div>
         </div>
