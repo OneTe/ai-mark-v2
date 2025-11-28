@@ -32,6 +32,16 @@ export interface ExecutionHistory {
   accuracy?: string;
 }
 
+export interface PromptVersion {
+  id: string;
+  version: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+  author?: string;
+}
+
 export enum Tab {
   Overview = 'overview',
   Prompt = 'prompt',

@@ -1,6 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const DatasetOverview: React.FC = () => {
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  // Current active prompt version
+  const currentPromptVersion = 'v2.0';
+  const currentPromptContent = `Analyze the provided city scene image and generate comprehensive tags.
+
+Key elements to identify:
+- Architecture: 'building', 'skyscraper', 'residential', 'commercial', 'historical'
+- Transportation: 'car', 'bus', 'bicycle', 'pedestrian', 'traffic light', 'crosswalk'
+- Nature: 'tree', 'park', 'garden', 'plants'
+- Time: 'day', 'night', 'dusk', 'dawn'
+- Weather: 'sunny', 'rainy', 'cloudy', 'foggy', 'snowy'
+- Atmosphere: 'bustling', 'quiet', 'modern', 'vintage', 'crowded'
+- Urban features: 'street sign', 'billboard', 'bench', 'street lamp'
+
+Output format: Return a comma-separated list of relevant tags only.`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(currentPromptContent);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
       {/* Summary Card */}
@@ -36,15 +63,25 @@ const DatasetOverview: React.FC = () => {
       {/* Current Prompt Card */}
       <div className="bg-white dark:bg-panel-dark p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center pb-4">
-          <h2 className="text-gray-900 dark:text-white text-lg font-bold">当前 Prompt</h2>
-          <button className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors">
-            <span className="material-symbols-outlined text-sm">content_copy</span>
-            复制
+          <div className="flex items-center gap-2">
+            <h2 className="text-gray-900 dark:text-white text-lg font-bold">当前 Prompt</h2>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+              {currentPromptVersion}
+            </span>
+          </div>
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-primary transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">
+              {copySuccess ? 'check' : 'content_copy'}
+            </span>
+            {copySuccess ? '已复制' : '复制'}
           </button>
         </div>
         <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md border border-gray-200 dark:border-gray-700">
-          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-mono whitespace-pre-wrap">
-            Generate tags for an image of a city scene. Identify key elements such as 'building', 'skyscraper', 'street', 'car', 'pedestrian', 'traffic light', and 'tree'. Also, determine the time of day: 'day', 'night', 'dusk', 'dawn'. Assess the overall atmosphere, like 'bustling', 'quiet', or 'modern'. The final output should be a comma-separated list of relevant tags.
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-mono whitespace-pre-wrap select-all">
+            {currentPromptContent}
           </p>
         </div>
       </div>

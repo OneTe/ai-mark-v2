@@ -5,6 +5,7 @@ import DatasetOverview from './pages/DatasetOverview';
 import ImageList from './pages/ImageList';
 import TagCalibration from './pages/TagCalibration';
 import PromptConfig from './pages/PromptConfig';
+import PromptManagement from './pages/PromptManagement';
 import { Tab } from './types';
 
 const App: React.FC = () => {
@@ -28,6 +29,10 @@ const App: React.FC = () => {
   const renderContent = () => {
     if (currentPage === 'datasets' && !selectedDatasetId) {
       return <DatasetList onSelectDataset={handleSelectDataset} />;
+    }
+
+    if (currentPage === 'prompt-management') {
+      return <PromptManagement />;
     }
 
     if (selectedDatasetId) {

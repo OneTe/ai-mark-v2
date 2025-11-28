@@ -7,10 +7,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate }) => {
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
     { id: 'datasets', label: '数据集管理', icon: 'dataset' },
-    { id: 'tagging', label: 'Tagging', icon: 'label' },
-    { id: 'settings', label: 'Settings', icon: 'settings' },
+    { id: 'prompt-management', label: 'Prompt管理', icon: 'code' },
   ];
 
   return (
