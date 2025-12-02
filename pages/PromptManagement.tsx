@@ -53,6 +53,7 @@ const mockPromptVersions: PromptVersion[] = [
 const PromptManagement: React.FC = () => {
   const [prompts, setPrompts] = useState<PromptVersion[]>(mockPromptVersions);
   const [isEditing, setIsEditing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<PromptVersion | null>(null);
   const [editContent, setEditContent] = useState('');
   const [displayCount, setDisplayCount] = useState(10);
@@ -98,6 +99,7 @@ const PromptManagement: React.FC = () => {
     setSelectedPrompt(prompt);
     setEditContent(prompt.content);
     setIsEditing(true);
+    setIsCreating(false);
     setShowComparison(false);
     // Set default comparison to previous version if available
     const currentIndex = prompts.findIndex(p => p.id === prompt.id);
@@ -108,30 +110,110 @@ const PromptManagement: React.FC = () => {
     }
   };
 
+  const calculateNextVersion = (): string => {
+    if (prompts.length === 0) {
+      return 'v1';
+    }
+
+    // Extract all version numbers
+    const versions = prompts.map(p => {
+      const match = p.version.match(/v(\d+)(?:\.(\d+))?/);
+      if (match) {
+        const major = parseInt(match[1]);
+        const minor = match[2] ? parseInt(match[2]) : 0;
+        return { major, minor };
+      }
+      return { major: 0, minor: 0 };
+    });
+
+    // Find max major version
+    const maxMajor = Math.max(...versions.map(v => v.major));
+
+    // Return next version
+    return `v${maxMajor + 1}`;
+  };
+
+  const handleCreateNew = () => {
+    const newVersion = calculateNextVersion();
+    const newPrompt: PromptVersion = {
+      id: 'temp-new',
+      version: newVersion,
+      content: '',
+      createdAt: new Date().toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).replace(/\//g, '-'),
+      updatedAt: new Date().toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).replace(/\//g, '-'),
+      isActive: false,
+      author: 'Admin'
+    };
+
+    setSelectedPrompt(newPrompt);
+    setEditContent('');
+    setIsCreating(true);
+    setIsEditing(true);
+    setShowComparison(false);
+  };
+
   const handleSave = () => {
     if (!selectedPrompt) return;
 
-    // Update existing version
-    const updatedPrompts = prompts.map(p => {
-      if (p.id === selectedPrompt.id) {
-        return {
-          ...p,
-          content: editContent,
-          updatedAt: new Date().toLocaleString('zh-CN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          }).replace(/\//g, '-')
-        };
-      }
-      return p;
-    });
+    if (isCreating) {
+      // Create new prompt
+      const newPrompt: PromptVersion = {
+        id: String(prompts.length + 1),
+        version: selectedPrompt.version,
+        content: editContent,
+        createdAt: selectedPrompt.createdAt,
+        updatedAt: new Date().toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }).replace(/\//g, '-'),
+        isActive: false,
+        author: 'Admin'
+      };
 
-    setPrompts(updatedPrompts);
+      setPrompts([newPrompt, ...prompts]);
+    } else {
+      // Update existing version
+      const updatedPrompts = prompts.map(p => {
+        if (p.id === selectedPrompt.id) {
+          return {
+            ...p,
+            content: editContent,
+            updatedAt: new Date().toLocaleString('zh-CN', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            }).replace(/\//g, '-')
+          };
+        }
+        return p;
+      });
+
+      setPrompts(updatedPrompts);
+    }
+
     setIsEditing(false);
+    setIsCreating(false);
     setSelectedPrompt(null);
     setShowSaveDropdown(false);
   };
@@ -182,8 +264,23 @@ const PromptManagement: React.FC = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
+    setIsCreating(false);
     setSelectedPrompt(null);
     setEditContent('');
+  };
+
+  const handleDelete = (e: React.MouseEvent, promptId: string) => {
+    e.stopPropagation(); // Prevent card click event
+
+    const promptToDelete = prompts.find(p => p.id === promptId);
+    if (promptToDelete?.isActive) {
+      alert('无法删除当前使用的 Prompt 版本');
+      return;
+    }
+
+    if (confirm(`确定要删除 Prompt ${promptToDelete?.version} 吗？此操作无法撤销。`)) {
+      setPrompts(prompts.filter(p => p.id !== promptId));
+    }
   };
 
   const truncateText = (text: string, maxLength: number = 120) => {
@@ -198,10 +295,23 @@ const PromptManagement: React.FC = () => {
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="bg-white dark:bg-panel-dark border-b border-gray-200 dark:border-gray-700 px-8 py-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Prompt 管理</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              管理和编辑所有 Prompt 版本
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Prompt 管理</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  管理和编辑所有 Prompt 版本
+                </p>
+              </div>
+              <button
+                onClick={handleCreateNew}
+                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-bold rounded-lg transition-colors shadow-sm"
+              >
+                <span className="material-symbols-outlined text-lg">
+                  add
+                </span>
+                创建新 Prompt
+              </button>
+            </div>
           </div>
 
           {/* Prompt Cards List */}
@@ -260,11 +370,23 @@ const PromptManagement: React.FC = () => {
 
                   {/* Hover indicator */}
                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="flex items-center gap-1 text-primary text-sm font-medium">
-                      <span>点击编辑</span>
-                      <span className="material-symbols-outlined text-sm">
-                        arrow_forward
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1 text-primary text-sm font-medium">
+                        <span>点击编辑</span>
+                        <span className="material-symbols-outlined text-sm">
+                          arrow_forward
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => handleDelete(e, prompt.id)}
+                        className="flex items-center gap-1 text-red-600 dark:text-red-400 text-sm font-medium hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                        title="删除此 Prompt"
+                      >
+                        <span className="material-symbols-outlined text-sm">
+                          delete
+                        </span>
+                        <span>删除</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -305,7 +427,7 @@ const PromptManagement: React.FC = () => {
                   </span>
                 </button>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  编辑 Prompt {selectedPrompt?.version}
+                  {isCreating ? '创建新 Prompt' : `编辑 Prompt ${selectedPrompt?.version}`}
                 </h1>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-11">
@@ -313,15 +435,17 @@ const PromptManagement: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowComparison(!showComparison)}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              >
-                <span className="material-symbols-outlined text-sm">
-                  {showComparison ? 'visibility_off' : 'compare'}
-                </span>
-                {showComparison ? '隐藏对比' : '历史对比'}
-              </button>
+              {!isCreating && (
+                <button
+                  onClick={() => setShowComparison(!showComparison)}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    {showComparison ? 'visibility_off' : 'compare'}
+                  </span>
+                  {showComparison ? '隐藏对比' : '历史对比'}
+                </button>
+              )}
               <button
                 onClick={handleCancel}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
@@ -330,51 +454,63 @@ const PromptManagement: React.FC = () => {
               </button>
 
               {/* Split button for Save options */}
-              <div className="relative save-dropdown-container">
-                <div className="flex">
-                  <button
-                    onClick={handleSave}
-                    className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-l-lg transition-colors flex items-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-sm">
-                      save
-                    </span>
-                    保存
-                  </button>
-                  <button
-                    onClick={() => setShowSaveDropdown(!showSaveDropdown)}
-                    className="px-2 py-2 bg-primary hover:bg-primary-dark text-white border-l border-white/20 rounded-r-lg transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-sm">
-                      {showSaveDropdown ? 'expand_less' : 'expand_more'}
-                    </span>
-                  </button>
-                </div>
-
-                {/* Dropdown menu */}
-                {showSaveDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+              {isCreating ? (
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    save
+                  </span>
+                  创建
+                </button>
+              ) : (
+                <div className="relative save-dropdown-container">
+                  <div className="flex">
                     <button
                       onClick={handleSave}
-                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 rounded-t-lg transition-colors"
+                      className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-l-lg transition-colors flex items-center gap-2"
                     >
                       <span className="material-symbols-outlined text-sm">
                         save
                       </span>
-                      保存当前版本
+                      保存
                     </button>
                     <button
-                      onClick={handleSaveAsNewVersion}
-                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 rounded-b-lg transition-colors border-t border-gray-100 dark:border-gray-700"
+                      onClick={() => setShowSaveDropdown(!showSaveDropdown)}
+                      className="px-2 py-2 bg-primary hover:bg-primary-dark text-white border-l border-white/20 rounded-r-lg transition-colors"
                     >
                       <span className="material-symbols-outlined text-sm">
-                        add_circle
+                        {showSaveDropdown ? 'expand_less' : 'expand_more'}
                       </span>
-                      保存为新版本
                     </button>
                   </div>
-                )}
-              </div>
+
+                  {/* Dropdown menu */}
+                  {showSaveDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                      <button
+                        onClick={handleSave}
+                        className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 rounded-t-lg transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-sm">
+                          save
+                        </span>
+                        保存当前版本
+                      </button>
+                      <button
+                        onClick={handleSaveAsNewVersion}
+                        className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 rounded-b-lg transition-colors border-t border-gray-100 dark:border-gray-700"
+                      >
+                        <span className="material-symbols-outlined text-sm">
+                          add_circle
+                        </span>
+                        保存为新版本
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -384,7 +520,7 @@ const PromptManagement: React.FC = () => {
           <div className="max-w-7xl mx-auto">
             <div className="bg-white dark:bg-panel-dark rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               {/* Comparison Mode */}
-              {showComparison ? (
+              {showComparison && !isCreating ? (
                 <div className="flex flex-col gap-4">
                   <div className="grid grid-cols-2 gap-4">
                     {/* Left: Historical Version */}
