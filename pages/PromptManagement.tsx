@@ -269,6 +269,20 @@ const PromptManagement: React.FC = () => {
     setEditContent('');
   };
 
+  const handleDelete = (e: React.MouseEvent, promptId: string) => {
+    e.stopPropagation(); // Prevent card click event
+
+    const promptToDelete = prompts.find(p => p.id === promptId);
+    if (promptToDelete?.isActive) {
+      alert('无法删除当前使用的 Prompt 版本');
+      return;
+    }
+
+    if (confirm(`确定要删除 Prompt ${promptToDelete?.version} 吗？此操作无法撤销。`)) {
+      setPrompts(prompts.filter(p => p.id !== promptId));
+    }
+  };
+
   const truncateText = (text: string, maxLength: number = 120) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
@@ -356,11 +370,23 @@ const PromptManagement: React.FC = () => {
 
                   {/* Hover indicator */}
                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="flex items-center gap-1 text-primary text-sm font-medium">
-                      <span>点击编辑</span>
-                      <span className="material-symbols-outlined text-sm">
-                        arrow_forward
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1 text-primary text-sm font-medium">
+                        <span>点击编辑</span>
+                        <span className="material-symbols-outlined text-sm">
+                          arrow_forward
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => handleDelete(e, prompt.id)}
+                        className="flex items-center gap-1 text-red-600 dark:text-red-400 text-sm font-medium hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                        title="删除此 Prompt"
+                      >
+                        <span className="material-symbols-outlined text-sm">
+                          delete
+                        </span>
+                        <span>删除</span>
+                      </button>
                     </div>
                   </div>
                 </div>
